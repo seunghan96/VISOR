@@ -1,0 +1,52 @@
+{
+ "dataset": "Time-MMD Security",
+ "dataset_id": "Security",
+ "setting": "predictor setting by cross-validation (adopted: width 512, dropout 0.5)",
+ "description": "TS-to-Chart predictor (flow-matching MLP on numbers, one model per dataset), K=32 candidates; the selector is initialized from the FNSPID selector (seed 0) and fine-tuned on this dataset alone. Steps marked 'common' are shared by all Time-MMD datasets. Five seeds are trained (seed 0 has no tag suffix, seed s the suffix _s<s>); the reported number is the mean over the three seeds with the lowest validation target (val_best in results/<tag>.json).",
+ "default_setting": {
+  "note": "One default setting on every dataset (appendix): the selector on the pool tmmdC_<dataset> built by predictor_default + pool_default",
+  "cmd": "python -m visor.selector --data tmmd --train \"sel_dump/tmmdC_Security_tr.npz\" --val \"sel_dump/tmmdC_Security_va.npz\" --test \"te=sel_dump/tmmdC_Security_te.npz\" --hist 24 --obj reg --prior 1 --yshare 1 --k_eval 32 --k 16 --mode line --img 224x112 --bs 8 --lora_vision 1 --aux 0.5 --steps 600 --eval_every 100 --val_rows 20 --test_rows 48 --text news --w_shape 0.1 --aux_news 2 --load selector_runs/vt_3b_w_shape0.1.pt --tag tmmdC_ftCPpri_Security{sfx} --seed {seed}"
+ },
+ "steps": [
+  {
+   "name": "side_file",
+   "cmd": "python -m visor.flow_mlp --out tmmd",
+   "note": "once for all Time-MMD datasets: writes sel_dump/tmmd_side.npz (history and text of every window, read by the selector) and sel_dump/tmmd_{tr,va,te}.npz (row index used by the baselines)",
+   "common": true
+  },
+  {
+   "name": "pretraining_windows",
+   "cmd": "python scripts/data/make_stock_windows.py --freq M --cutoff 2010-10-31 --tag M2010 && python scripts/data/make_stock_windows.py --freq M --cutoff 2002-05-31 --tag M2002 && python scripts/data/make_stock_windows.py --freq W --cutoff 2015-10-23 --tag W2015",
+   "note": "price windows for --pre auto (weekly datasets W2015, Social Good M2002, the rest M2010), dated before each dataset's validation period",
+   "common": true
+  },
+  {
+   "name": "predictor_default",
+   "cmd": "python -m visor.flow_mlp --per_dom 1 --pre auto --width 512 --extra 0 --out tmmdR_w512ex0"
+  },
+  {
+   "name": "pool_default",
+   "cmd": "python -m visor.pools slice tmmdR_w512ex0 Security tmmdC"
+  },
+  {
+   "name": "predictor_cv_pick",
+   "cmd": "python -m visor.flow_mlp --per_dom 1 --pre auto --width 512 --extra 0 --drop 0.5 --oof 5 --out tmK_tmmdR_w512ex0dr0.5"
+  },
+  {
+   "name": "pool_cv_pick",
+   "cmd": "python -m visor.pools slice tmK_tmmdR_w512ex0dr0.5 Security tmmdK"
+  },
+  {
+   "name": "selector",
+   "cmd": "python -m visor.selector --data tmmd --train \"sel_dump/tmmdK_Security_tr.npz\" --val \"sel_dump/tmmdK_Security_va.npz\" --test \"te=sel_dump/tmmdK_Security_te.npz\" --hist 24 --obj reg --prior 1 --yshare 1 --k_eval 32 --k 16 --mode line --img 224x112 --bs 8 --lora_vision 1 --aux 0.5 --steps 600 --eval_every 100 --val_rows 20 --test_rows 48 --text news --w_shape 0.1 --aux_news 2 --load selector_runs/vt_3b_w_shape0.1.pt --tag tmmdK_ftCPpri_Security{sfx} --seed {seed}",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  }
+ ],
+ "cross_validation": "Predictor setting by cross-validation (visor/pools.py cv): every candidate setting is rebuilt with --oof 5 as tmK_<setting> and scored by the medoid MAE over the out-of-fold train rows plus the validation rows; a setting replaces the current one only under a paired one-sided t-test with a Bonferroni correction. Round 1 settings: tmmdQ_w128ex0, tmmdQ_w256ex0, tmmdR_w256ex0, tmmdR_w512ex0, tmmdR_w512ex0dr0.3, tmmdR_w512ex0lr1e-4, tmmdR_w512ex0p60k, tmmdR_w128ex0, tmmdR_w256ex0dr0.3, tmmdR_w512ex0dr0.5, tmmdR_w512ex0s5k, tmmdR_w512ex0s10k, tmmdR_w512ex0d2, tmmdR_w512ex0nfe64, tmmdR_w512ex0preM2002, tmmdR_w512ex0preW2015, tmmdR_w512ex0robust, tmmdR_w512ex0sqrt, tmmdR_w512ex0zscore; round 2 adds: tmmdR_w512ex0dr0.6, tmmdR_w512ex0dr0.7, tmmdR_w1024ex0dr0.5, tmmdR_w768ex0dr0.5, tmmdR_w512ex0dr0.5lr1e-4, tmmdR_w512ex0dr0.5lr3e-4, tmmdR_w512ex0dr0.5s10k, tmmdR_w512ex0dr0.5d2, tmmdR_w512ex0dr0.5d4, tmmdR_w512ex0dr0.5nfe64, tmmdR_w512ex0dr0.5sqrt, tmmdR_w512ex0dr0.5bs128. Setting names: Q = no pretraining, R = --pre auto, w = --width, ex0 = --extra 0, dr = --drop, lr = --lr, s5k/s10k = --steps, d = --depth, nfe = --nfe, p60k = --pre_steps 60000, pre<corpus> = --pre <dataset>=<corpus> for all datasets, robust/sqrt/zscore = --rep. The commands below build the adopted setting directly."
+}

@@ -1,0 +1,118 @@
+{
+ "dataset": "FNSPID",
+ "description": "Chart-Native predictor (KiT-architecture canvas flow, trained from scratch on FNSPID prices up to 2017; second candidate set up to 2021), K=32 candidates, Qwen2.5-VL-3B selector with LoRA on the LLM and the vision tower, shape-aware target with w_shape 0.1. Five seeds are trained (seed 0 has no tag suffix, seed s the suffix _s<s>); the reported number is the mean over the three seeds with the lowest validation target (val_best in results/<tag>.json).",
+ "steps": [
+  {
+   "name": "predictor_g17",
+   "cmd": "python -m visor.kit_train --tag fg17_s0 --mode kit --val_inst 2000 --val_anchors 12 --t_dist uniform --peers 0 --batch 128 --val_every 5000 --workers 3 --scales 1d --win 90/10/40 --d_model 256 --n_layers 6 --lr 0.0002 --xs_prob 0.5 --steps 30000 --chart 96 --lam_x 0.0 --train_end 2017-12-31 --val_lo 2018-01-01 --val_hi 2018-12-31 --market_w fnspid:1 --val_markets fnspid --pix 64 --t1_prob 0.3 --pix_z 4.0 --src_a 0.5 --seed 0"
+  },
+  {
+   "name": "predictor_g21",
+   "cmd": "python -m visor.kit_train --tag fg21_s0 --mode kit --val_inst 2000 --val_anchors 12 --t_dist uniform --peers 0 --batch 128 --val_every 5000 --workers 3 --scales 1d --win 90/10/40 --d_model 256 --n_layers 6 --lr 0.0002 --xs_prob 0.5 --steps 30000 --chart 96 --lam_x 0.0 --train_end 2021-12-31 --val_lo 2022-01-01 --val_hi 2022-12-31 --market_w fnspid:1 --val_markets fnspid --pix 64 --t1_prob 0.3 --pix_z 4.0 --src_a 0.5 --seed 0"
+  },
+  {
+   "name": "candidates_train",
+   "cmd": "python -m visor.kit_candidates --ckpt mf_runs/fg17_s0.pt --market fnspid --lo 2018-01-01 --hi 2021-12-31 --stride 2 --k 32 --steps 32 --codes configs/fnspid_codes.txt --news_days 3 --part {p}/20 --seed {p} --tag fsel_fnspid_tr_g17_p{p}",
+   "loop": {
+    "p": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19
+    ]
+   }
+  },
+  {
+   "name": "candidates_val",
+   "cmd": "python -m visor.kit_candidates --ckpt mf_runs/fg17_s0.pt --market fnspid --lo 2022-01-01 --hi 2022-12-31 --stride 5 --k 32 --steps 32 --codes configs/fnspid_codes.txt --news_days 3 --part {p}/4 --seed {s100} --tag fsel_fnspid_va_g17_p{p}",
+   "loop": {
+    "p": [
+     0,
+     1,
+     2,
+     3
+    ]
+   }
+  },
+  {
+   "name": "candidates_test",
+   "cmd": "python -m visor.kit_candidates --ckpt mf_runs/fg17_s0.pt --market fnspid --lo 2023-01-01 --hi 2023-12-31 --stride 5 --k 32 --steps 32 --codes configs/fnspid_codes.txt --news_days 3 --part {p}/4 --seed {s100} --tag fsel_fnspid_te_g17_p{p}",
+   "loop": {
+    "p": [
+     0,
+     1,
+     2,
+     3
+    ]
+   }
+  },
+  {
+   "name": "candidates_test_g21",
+   "cmd": "python -m visor.kit_candidates --ckpt mf_runs/fg21_s0.pt --market fnspid --lo 2023-01-01 --hi 2023-12-31 --stride 5 --k 32 --steps 32 --codes configs/fnspid_codes.txt --news_days 3 --part {p}/4 --seed {s100} --tag fsel_fnspid_te_g21_p{p}",
+   "loop": {
+    "p": [
+     0,
+     1,
+     2,
+     3
+    ]
+   }
+  },
+  {
+   "name": "selector_train",
+   "cmd": "python -m visor.selector --train \"sel_dump/fsel_fnspid_tr_g17_p*.npz\" --val \"sel_dump/fsel_fnspid_va_g17_p*.npz\" --obj reg --prior 0 --yshare 1 --k_eval 32 --k 16 --mode line --img 224x112 --bs 8 --text news --news_clean 1 --lora_vision 1 --aux 0.5 --val_rows 3000 --w_shape 0.1 --test_rows 4000 --eval_every 1000 --steps 6000 --seed {seed} --tag vt_3b_w_shape0.1{sfx}",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "name": "selector_test",
+   "cmd": "python -m visor.selector --train \"sel_dump/fsel_fnspid_tr_g17_p*.npz\" --val \"sel_dump/fsel_fnspid_va_g17_p*.npz\" --obj reg --prior 0 --yshare 1 --k_eval 32 --k 16 --mode line --img 224x112 --bs 8 --text news --news_clean 1 --lora_vision 1 --aux 0.5 --val_rows 3000 --w_shape 0.1 --test \"te_g17=sel_dump/fsel_fnspid_te_g17_p*.npz;te_g21=sel_dump/fsel_fnspid_te_g21_p*.npz\" --test_rows 10000 --eval_every 1000 --load selector_runs/vt_3b_w_shape0.1{sfx}.pt --steps 0 --no_val 1 --tag te3_vt_3b_w_shape0.1{sfx}",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  }
+ ],
+ "ablations": {
+  "target: MAE only": "selector_train/test without --w_shape 0.1 (tag vt_3b_base)",
+  "target: + endpoint": "--w_ret 0.5 instead of --w_shape 0.1",
+  "target: + shape + endpoint": "--w_ret 0.5 --w_shape 0.1",
+  "shape weight sweep": "--w_shape 0.05 / 0.3 / 0.5",
+  "number input instead of chart": "--input num",
+  "no LoRA on the vision tower": "--lora_vision 0",
+  "no chart auxiliary loss": "--aux 0",
+  "rendering: candles": "--mode candle",
+  "rendering: larger panels": "--img 336x168",
+  "rendering: band of all candidates": "--band 1",
+  "number of candidates at test": "selector_test with --k_eval 4 / 8 / 16 / 24 (and --k min(k_eval, 16))",
+  "no text": "--text none",
+  "oracle text": "--text oracle",
+  "hidden ticker and company name (test only)": "selector_test with --anon 1 (needs names.csv, see README)",
+  "text controls (test only)": "selector_test with --ctrl none,foreign,flip",
+  "larger VLM": "--vlm Qwen/Qwen3-VL-4B-Instruct or Qwen/Qwen3-VL-8B-Instruct"
+ }
+}

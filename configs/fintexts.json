@@ -1,0 +1,21 @@
+{
+ "dataset": "FinTexTS",
+ "description": "TS-to-Chart predictor (flow-matching MLP on numbers, one model over all tickers), K=32 candidates; the selector is initialized from the FNSPID selector (seed 0, configs/fnspid.json) and fine-tuned. Five seeds are trained (seed 0 has no tag suffix, seed s the suffix _s<s>); the reported number is the mean over the three seeds with the lowest validation target (val_best in results/<tag>.json).",
+ "steps": [
+  {
+   "name": "predictor_and_candidates",
+   "cmd": "python -m visor.fintexts --steps 20000 --width 256 --out fintexts"
+  },
+  {
+   "name": "selector",
+   "cmd": "python -m visor.selector --data tmmd --side sel_dump/fintexts_side.npz --series_desc \"Stock {{}}, daily close (standardized)\" --train \"sel_dump/fintexts_tr.npz\" --val \"sel_dump/fintexts_va.npz\" --test \"te=sel_dump/fintexts_te.npz\" --hist 20 --obj reg --prior 1 --yshare 1 --k_eval 32 --k 16 --mode line --img 224x112 --bs 8 --lora_vision 1 --aux 0.5 --steps 3000 --eval_every 500 --val_rows 1000 --test_rows 5000 --text news --w_shape 0.1 --aux_news 2 --load selector_runs/vt_3b_w_shape0.1.pt --tag ftx_CP{sfx} --seed {seed}",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  }
+ ]
+}

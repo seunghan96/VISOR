@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+data/
+sel_dump/
+mf_runs/
+selector_runs/
+results/
+px_rows/
+px_tsfm_out/
+*.pt
+*.npz

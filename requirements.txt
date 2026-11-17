@@ -1,0 +1,11 @@
+# Versions of the environment used for the paper. Python 3.12.
+torch==2.15.0
+transformers==5.22.1
+peft==0.21.2
+numpy==2.5.4
+pandas==3.1.0
+scipy==1.18.1
+pillow==13.0.0
+pyarrow==25.0.1   # parquet engine of pandas.read_parquet
+# The TSFM baselines run in separate environments with their released packages:
+# chronos-forecasting, timesfm, uni2ts, toto-ts (see README, Baselines).
