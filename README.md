@@ -15,6 +15,8 @@
 
 <p align="center"><img src="assets/overview_main.png" width="95%"></p>
 
+&nbsp;
+
 ## Overview
 
 **Step 1, forecasting.** A text-free stochastic predictor samples K = 32 future paths from the history.
@@ -31,6 +33,8 @@
 (a) The mean or median of stochastic forecasts is a flat line that matches none of the futures. (b) VLMs read a plot of a series better than its numbers, while time series and text are weakly aligned. VISOR keeps the sampled futures and lets the VLM choose among them as images.
 
 <p align="center"><img src="assets/toy_branch.png" width="60%"></p>
+
+&nbsp;
 
 ## Results
 
@@ -49,6 +53,8 @@ VISOR is compared with 22 baselines (9 TSFMs, 5 task-specific and 8 multimodal T
 <p align="center"><img src="assets/examples_sel.png" width="100%"></p>
 <p align="center"><sub>Selected test forecasts with the text that the selector read.</sub></p>
 </details>
+
+&nbsp;
 
 ## Quick start
 
@@ -70,6 +76,8 @@ python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0
 | 3 | Train and evaluate the VLM selector | `visor.selector` |
 | 4 | Five seeds, mean of the three with the lowest validation target | `scripts/pick_seeds.py` |
 | 5 | Paired tests clustered by forecast time | `scripts/paired_test.py` |
+
+&nbsp;
 
 ## Repository layout
 
@@ -95,6 +103,8 @@ baselines/        wrappers that run released baseline code on the same rows (thi
 
 Run every command from the repository root. Generated files go to the working directory: `sel_dump/`, `mf_runs/`, `selector_runs/`, `results/`, `px_rows/` and `px_tsfm_out/`.
 
+&nbsp;
+
 ## Installation (details)
 
 ```
@@ -112,6 +122,8 @@ Third-party code is not shipped. Clone each repository and point to it with an e
 | `MMTSFLIB_ROOT` | MM-TSFlib, https://github.com/AdityaLab/MM-TSFlib | classic and multimodal baselines (TSLib backbones) |
 | `TATS_DATA` | `data/` folder of TaTS, https://github.com/iDEA-iSAIL-Lab-UIUC/TaTS | TaTS baseline and the benchmark prior of Time-MMD (`prior_candidate.py`) |
 | `CFA_ROOT` | released code of the CFA paper | CFA baseline |
+
+&nbsp;
 
 ## Data preparation
 
@@ -135,6 +147,8 @@ python scripts/data/make_stock_windows.py --freq W --cutoff 2015-10-23 --tag W20
 
 **FinTexTS.** Put the parquet files of the FinTexTS release in `$VISOR_DATA/fintexts_raw/data`.
 
+&nbsp;
+
 ## Reproducing the main experiments
 
 Each config in `configs/` lists the steps of one dataset in order, with the exact flags of the reported runs. Print a config's commands with:
@@ -142,6 +156,8 @@ Each config in `configs/` lists the steps of one dataset in order, with the exac
 python scripts/run_config.py configs/fnspid.json
 python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0 --run
 ```
+
+&nbsp;
 
 ### (a) Train the predictor
 
@@ -151,6 +167,8 @@ python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0
 | FinTexTS | `python -m visor.fintexts --steps 20000 --width 256 --out fintexts` | one model over all tickers |
 | Time-MMD | `python -m visor.flow_mlp --per_dom 1 --pre auto --width 512 ... --out <name>` | one model per dataset. Per-dataset settings: `configs/tmmd_<Dataset>.json`. Energy and Health use `python -m visor.flow_mlp_prior`. |
 
+&nbsp;
+
 ### (b) Dump the candidates
 
 - **FNSPID.** Run `python -m visor.kit_candidates --ckpt mf_runs/fg17_s0.pt ... --part p/20` for each part of train (2018 to 2021), val (2022) and test (2023), using the `candidates_*` steps of the config.
@@ -159,6 +177,8 @@ python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0
   - `visor.temperature` changes the sampling temperature without retraining.
   - `visor.prior_candidate` adds the benchmark prior as a path.
   - `visor.pools cv` is the cross-validated choice of the predictor setting (Security, Social Good).
+
+&nbsp;
 
 ### (c) Train and evaluate the selector
 
@@ -178,6 +198,8 @@ python -m visor.selector --train "sel_dump/fsel_fnspid_tr_g17_p*.npz" --val "sel
   python scripts/pick_seeds.py tmmdP_A_ftCPpri_Energy
   ```
 - **Significance.** `python scripts/paired_test.py <dump glob> <scores_a.npz> [<scores_b.npz> | medoid]`
+
+&nbsp;
 
 ### (d) Baselines
 
@@ -201,26 +223,7 @@ python scripts/data/export_rows_fnspid_trva.py # FNSPID train/val rows (Frozen-T
 
 The following baselines are not included here, because running them needs a copy or a port of their own code: VisionTS, ViTime, TimeMCL, Time-VLM, GPT4MTS, Time-LLM, CALF and ChatTime. Use the original repositories with the rows exported above. Each baseline is scored on its point forecast, the per-step median of its output paths, with the evaluator of `visor/metrics.py`.
 
-## Paper tables and figures (main body)
-
-| Item | Source |
-|---|---|
-| Fig. 1 (overview), Fig. 2 (motivation), Fig. 3 (radar), Fig. 4 (toy example) | illustrations. Fig. 3 summarizes Table 5. |
-| Table 1 (related work), Table 2 (predictor designs) | text tables |
-| Table 3 (datasets) | data preparation above. The window counts are the row counts of the `sel_dump/*_{tr,va,te}.npz` files. |
-| Table 4 (baselines) | `baselines/` |
-| Table 5 (main results), Fig. 5 (ranks) | VISOR: the `selector` (FinTexTS, Time-MMD) or `selector_test` (FNSPID) step of each config, then `scripts/pick_seeds.py`. Baselines: section (d) and `baselines/score_baselines.py`. |
-| Table 6 (effect of VLM selection) | the `random` and `medoid` rows and the selector row of `results/<tag>.json` (`visor/metrics.py` evaluate/report) |
-| Table 7 (selection target) | selector with `--w_shape 0` (MAE only), `--w_ret 0.5`, `--w_shape 0.1`. See `ablations` in `configs/fnspid.json`. |
-| Fig. 6 (calm-path bias) | per-row volatility of the chosen path vs. the medoid (`visor/significance.py` path_metrics) |
-| Fig. 7 (number of candidates) | test runs with `--k_eval 4/8/16/24/32` |
-| Fig. 8 (selected test forecasts) | test score files `selector_runs/<tag>_te*_scores.npz` with the candidate dumps |
-| Table 8 (chart vs. number input) | selector with `--input num` |
-| Table 9 (ablation of the chart reader) | `--lora_vision 0`, `--aux 0`, `--mode candle`, `--img 336x168`, `--band 1` |
-| Fig. 9 (training efficiency vs. rank) | run time and trainable share of each method. Not scripted. |
-| Predictor designs (Table 2, appendix) | `visor/chart_native.py`, `visor/frozen_tsfm_candidates.py`, and the TS-to-Chart configs |
-
-The scripts that format the paper's tables and figures are not included. The commands above produce every number they read.
+&nbsp;
 
 ## License
 
