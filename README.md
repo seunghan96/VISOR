@@ -17,7 +17,7 @@
 
 &nbsp;
 
-## Overview
+## 1. Overview
 
 **Step 1, forecasting.** A text-free stochastic predictor samples K = 32 future paths from the history.
 **Step 2, selection.** The history and the paths are drawn as one chart. A vision-language model (Qwen2.5-VL-3B with LoRA on the vision tower and the language model, plus a small scoring head) reads the chart together with the text and returns **one** sampled path.
@@ -26,7 +26,7 @@
 - **Text only selects.** The predictor never sees the text, so noisy text cannot change the sampled values.
 - **Shape-aware target.** The selector is trained with the point error plus a shape term (weight 0.1), which counters the calm-path bias of MAE-only selection.
 
-### Why
+### 1-1. Why
 
 <p align="center"><img src="assets/motivation.png" width="95%"></p>
 
@@ -36,7 +36,7 @@
 
 &nbsp;
 
-## Results
+## 2. Results
 
 VISOR is compared with 22 baselines (9 TSFMs, 5 task-specific and 8 multimodal TS models) on FNSPID, FinTexTS and the eight Time-MMD datasets. Each Time-MMD dataset has its own predictor and selector and is reported on its own.
 
@@ -56,7 +56,7 @@ VISOR is compared with 22 baselines (9 TSFMs, 5 task-specific and 8 multimodal T
 
 &nbsp;
 
-## Quick start
+## 3. Quick start
 
 ```bash
 python -m venv .venv && . .venv/bin/activate
@@ -79,7 +79,7 @@ python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0
 
 &nbsp;
 
-## Repository layout
+## 4. Repository layout
 
 ```
 visor/            the package
@@ -105,7 +105,7 @@ Run every command from the repository root. Generated files go to the working di
 
 &nbsp;
 
-## Installation (details)
+## 5. Installation (details)
 
 ```
 python -m venv .venv && . .venv/bin/activate
@@ -125,7 +125,7 @@ Third-party code is not shipped. Clone each repository and point to it with an e
 
 &nbsp;
 
-## Data preparation
+## 6. Data preparation
 
 `VISOR_DATA` is the data root and defaults to `./data`. Each location can be set on its own (see `visor/paths.py`).
 
@@ -149,7 +149,7 @@ python scripts/data/make_stock_windows.py --freq W --cutoff 2015-10-23 --tag W20
 
 &nbsp;
 
-## Reproducing the main experiments
+## 7. Reproducing the main experiments
 
 Each config in `configs/` lists the steps of one dataset in order, with the exact flags of the reported runs. Print a config's commands with:
 ```
@@ -159,7 +159,7 @@ python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0
 
 &nbsp;
 
-### (a) Train the predictor
+### 7-1. Train the predictor
 
 | Dataset | Command | Predictor |
 |---|---|---|
@@ -169,7 +169,7 @@ python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0
 
 &nbsp;
 
-### (b) Dump the candidates
+### 7-2. Dump the candidates
 
 - **FNSPID.** Run `python -m visor.kit_candidates --ckpt mf_runs/fg17_s0.pt ... --part p/20` for each part of train (2018 to 2021), val (2022) and test (2023), using the `candidates_*` steps of the config.
 - **FinTexTS and Time-MMD.** Training the predictor also writes the candidates: `sel_dump/<out>_{tr,va,te}.npz`.
@@ -180,7 +180,7 @@ python scripts/run_config.py configs/fnspid.json --step selector_train --seeds 0
 
 &nbsp;
 
-### (c) Train and evaluate the selector
+### 7-3. Train and evaluate the selector
 
 ```
 python -m visor.selector --train "sel_dump/fsel_fnspid_tr_g17_p*.npz" --val "sel_dump/fsel_fnspid_va_g17_p*.npz" \
@@ -201,7 +201,7 @@ python -m visor.selector --train "sel_dump/fsel_fnspid_tr_g17_p*.npz" --val "sel
 
 &nbsp;
 
-### (d) Baselines
+### 7-4. Baselines
 
 Every baseline forecasts the same rows that VISOR is scored on. First export these rows:
 ```
@@ -225,6 +225,6 @@ The following baselines are not included here, because running them needs a copy
 
 &nbsp;
 
-## License
+## 8. License
 
 See `LICENSE`. The license is to be decided. KiT is AGPL-3.0, which applies to the FNSPID predictor when it is run with KiT's code.
